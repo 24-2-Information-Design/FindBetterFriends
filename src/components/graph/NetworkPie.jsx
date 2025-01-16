@@ -8,7 +8,7 @@ import useChainStore from '../../store/store';
 const NetworkPie = () => {
     const svgRef = useRef(null);
     const { setSelectedChain, selectedValidators, highlightedChains, selectedChain, getChainOpacity } = useChainStore();
-    const [activeClusters, setActiveClusters] = useState(new Set());
+    const [activeClusters, setActiveClusters] = useState(new Set(clusterArr));
 
     const toggleCluster = (cluster) => {
         const newActiveClusters = new Set(activeClusters);
@@ -271,20 +271,28 @@ const NetworkPie = () => {
     return (
         <div className="mt-1">
             <div className="ml-4 mb-2">
-                <div className="grid grid-cols-4 gap-x-1 gap-y-2 w-fit">
-                    {clusterArr.map((cluster) => (
-                        <div key={cluster} className="flex items-center gap-2">
-                            <div
-                                className="w-4 h-4 rounded cursor-pointer"
-                                style={{
-                                    backgroundColor: NormalColors[cluster],
-                                    opacity: activeClusters.has(cluster) ? 1 : 0.4,
-                                }}
-                                onClick={() => toggleCluster(cluster)}
-                            />
-                            <span className="text-xs text-gray-600">{`${cluster}. ${clusterNames[cluster]}`}</span>
-                        </div>
-                    ))}
+                <div className="flex flex-col items-center w-full">
+                    <div className="flex gap-5">
+                        {clusterArr.map((cluster) => (
+                            <div key={cluster} className="flex flex-col items-center w-12">
+                                {/* 원형 범례 */}
+                                <div
+                                    className="w-12 h-12 rounded-full cursor-pointer transition-all duration-200 hover:opacity-80 relative mb-2"
+                                    style={{
+                                        backgroundColor: NormalColors[cluster],
+                                        opacity: activeClusters.has(cluster) ? 1 : 0.4,
+                                    }}
+                                    onClick={() => toggleCluster(cluster)}
+                                >
+                                    <div className="absolute inset-0 flex items-center justify-center text-white font-medium">
+                                        {cluster}
+                                    </div>
+                                </div>
+                                {/* 설명 텍스트 */}
+                                <span className="text-[0.7rem] text-gray-700 text-center">{clusterNames[cluster]}</span>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </div>
             <svg className="ml-4" ref={svgRef}></svg>

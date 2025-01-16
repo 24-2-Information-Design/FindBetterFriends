@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import jsonData from '../../data/chain_data.json';
 import linkData from '../../data/chain_link_data.json';
@@ -8,6 +8,24 @@ import useChainStore from '../../store/store';
 const NetworkPie = () => {
     const svgRef = useRef(null);
     const { setSelectedChain, selectedValidators, highlightedChains, selectedChain, getChainOpacity } = useChainStore();
+    const [activeClusters, setActiveClusters] = useState(new Set());
+
+    const toggleCluster = (cluster) => {
+        const newActiveClusters = new Set(activeClusters);
+        if (newActiveClusters.has(cluster)) {
+            newActiveClusters.delete(cluster);
+        } else {
+            newActiveClusters.add(cluster);
+        }
+        setActiveClusters(newActiveClusters);
+    };
+
+    const getOpacityForSlice = (clusterIndex) => {
+        // 군집이 선택되지 않은 경우 모든 섹션의 opacity는 1
+        if (activeClusters.size === 0) return 1;
+        // 활성화된 군집만 opacity를 유지하고 나머지는 낮춤
+        return activeClusters.has(clusterIndex) ? 1 : 0.2;
+    };
 
     useEffect(() => {
         if (!svgRef.current) return;
@@ -213,6 +231,7 @@ const NetworkPie = () => {
                 .attr('d', pieArc)
                 .attr('fill', (d, i) => colorScale(i))
                 .attr('class', 'pie-slice')
+                .style('opacity', (d, i) => getOpacityForSlice(i))
                 .append('title')
                 .text((d) => `${node.id} - proportion ${d.data.month}: ${(d.value * 100).toFixed(2)}%`);
 
@@ -247,7 +266,7 @@ const NetworkPie = () => {
                 .attr('font-size', '12px')
                 .attr('font-weight', 'bold');
         });
-    }, [setSelectedChain, highlightedChains, selectedChain, getChainOpacity]);
+    }, [setSelectedChain, highlightedChains, selectedChain, getChainOpacity, activeClusters]);
 
     return (
         <div className="mt-1">
@@ -256,11 +275,12 @@ const NetworkPie = () => {
                     {clusterArr.map((cluster) => (
                         <div key={cluster} className="flex items-center gap-2">
                             <div
-                                className="w-4 h-4 rounded"
+                                className="w-4 h-4 rounded cursor-pointer"
                                 style={{
                                     backgroundColor: NormalColors[cluster],
-                                    opacity: 0.6,
+                                    opacity: activeClusters.has(cluster) ? 1 : 0.4,
                                 }}
+                                onClick={() => toggleCluster(cluster)}
                             />
                             <span className="text-xs text-gray-600">{`${cluster}. ${clusterNames[cluster]}`}</span>
                         </div>

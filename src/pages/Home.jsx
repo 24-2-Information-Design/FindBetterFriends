@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import NetworkPie from '../components/graph/NetworkPie';
 import ScatterPlot from '../components/graph/ScatterPlot';
-import Parallel from '../components/graph/Parallel';
 import useChainStore from '../store/store';
 import SunburstChart from '../components/graph/SunburstChart';
 import ValidatorTable from '../components/ValidatorTable';
@@ -164,7 +163,6 @@ const Home = () => {
                     {/* parallel view */}
                     <div className="w-full h-[22%]">
                         <p className="pl-3 font-semibold">Votes Tendency</p>
-                        {parallelData ? <Parallel data={parallelData} /> : selectedChain && <p>Loading... </p>}
                     </div>
 
                     <div className="w-[95%] ml-5 mb-1 flex border-t-2 border-gray-200"></div>

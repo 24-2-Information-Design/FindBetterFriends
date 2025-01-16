@@ -171,7 +171,7 @@ const ValidatorTable = () => {
             </div>
 
             <div className="pl-3 relative">
-                <div style={{ maxHeight: 'calc(2rem * 5.2)' }} className="overflow-auto">
+                <div style={{ maxHeight: 'calc(2rem * 9)' }} className="overflow-auto">
                     <table
                         className="w-full"
                         style={{ minWidth: '800px', borderCollapse: 'separate', borderSpacing: 0 }}

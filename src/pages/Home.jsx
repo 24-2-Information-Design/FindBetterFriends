@@ -158,25 +158,10 @@ const Home = () => {
                         </div>
                     </div>
 
-                    <div className="w-[95%] ml-5 mt-1 mb-1 flex border-t-2 border-gray-200"></div>
-
-                    {/* parallel view */}
-                    <div className="w-full h-[22%]">
-                        <p className="pl-3 font-semibold">Votes Tendency</p>
-                    </div>
-
-                    <div className="w-[95%] ml-5 mb-1 flex border-t-2 border-gray-200"></div>
-
                     {/* result view */}
-                    <div className="w-full h-[32%] flex flex-row justify-between">
-                        <div className="w-[70%] h-full">
+                    <div className="w-full h-[32%] flex flex-row justify-between mt-4">
+                        <div className="w-full h-full">
                             <ValidatorTable />
-                        </div>
-
-                        <div className="h-[80%] ml-2 mt-3 mb-1 flex border-l border-gray-200"></div>
-
-                        <div className="w-[28%] h-full ">
-                            <ClusterResult />
                         </div>
                     </div>
                 </div>

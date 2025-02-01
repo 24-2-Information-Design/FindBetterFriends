@@ -4,7 +4,8 @@ import useChainStore from '../../store/store';
 
 const SunburstChart = ({ data, parallelData }) => {
     const svgRef = useRef(null);
-    const { selectedValidators, selectedChain, singleSelectMode } = useChainStore();
+    const { selectedValidators, selectedChain, singleSelectMode, hiddenValidators, isValidatorHidden } =
+        useChainStore();
 
     const voteColors = {
         YES: '#2ecc71',
@@ -21,7 +22,6 @@ const SunburstChart = ({ data, parallelData }) => {
         ABSTAIN: 'Abstain',
         NO_VOTE: 'No Vote',
     };
-
     const getVoteTypeColor = (voteName) => {
         return voteColors[voteName] || '#95a5a6';
     };
@@ -31,12 +31,19 @@ const SunburstChart = ({ data, parallelData }) => {
             return null;
         }
 
+        // hiddenValidators를 제외한 선택된 검증인들만 필터링
+        const visibleValidators = selectedValidators.filter((validator) => !isValidatorHidden(validator));
+
+        if (visibleValidators.length === 0) {
+            return null;
+        }
+
         const proposalKey = `${selectedChain}_${proposalId}`;
 
         // 단일 선택 모드
         if (singleSelectMode) {
-            if (selectedValidators.length === 1) {
-                const validatorData = parallelData.find((d) => d.voter === selectedValidators[0]);
+            if (visibleValidators.length === 1) {
+                const validatorData = parallelData.find((d) => d.voter === visibleValidators[0]);
                 return validatorData ? validatorData[proposalKey] || 'NO_VOTE' : 'NO_VOTE';
             }
             return null;
@@ -44,12 +51,12 @@ const SunburstChart = ({ data, parallelData }) => {
 
         // 다중 선택 모드
         // 단일 검증인이 선택된 경우 null 반환하여 회색으로 표시
-        if (selectedValidators.length === 1) {
+        if (visibleValidators.length === 1) {
             return null;
         }
 
         // 복수 검증인이 선택된 경우 투표 일치 여부 확인
-        const validatorVotes = selectedValidators.map((validator) => {
+        const validatorVotes = visibleValidators.map((validator) => {
             const validatorData = parallelData.find((d) => d.voter === validator);
             return validatorData ? validatorData[proposalKey] || 'NO_VOTE' : 'NO_VOTE';
         });
@@ -59,7 +66,7 @@ const SunburstChart = ({ data, parallelData }) => {
     };
 
     const calculateParticipationRate = (validator) => {
-        if (!validator || !data || !parallelData) return 0;
+        if (!validator || !data || !parallelData || isValidatorHidden(validator)) return 0;
 
         const validatorData = parallelData.find((d) => d.voter === validator);
         if (!validatorData) return 0;
@@ -74,9 +81,8 @@ const SunburstChart = ({ data, parallelData }) => {
 
         return (participatedProposals / totalProposals) * 100;
     };
-
     const getValidatorInfo = (validator) => {
-        if (!validator || !parallelData) return null;
+        if (!validator || !parallelData || isValidatorHidden(validator)) return null;
         const validatorData = parallelData.find((d) => d.voter === validator);
         if (!validatorData) return null;
 
@@ -86,9 +92,10 @@ const SunburstChart = ({ data, parallelData }) => {
             participationRate: calculateParticipationRate(validator).toFixed(1),
         };
     };
-
     const calculateMatchStatistics = (rawData) => {
-        if (!selectedValidators || selectedValidators.length < 2) return { rate: 0, matched: 0, total: 0 };
+        const visibleValidators = selectedValidators.filter((validator) => !isValidatorHidden(validator));
+
+        if (!visibleValidators || visibleValidators.length < 2) return { rate: 0, matched: 0, total: 0 };
 
         const totalProposals = rawData.length;
         const agreedProposals = rawData.filter((d) => {
@@ -394,7 +401,7 @@ const SunburstChart = ({ data, parallelData }) => {
         return () => {
             tooltip.remove();
         };
-    }, [data, parallelData, selectedValidators, selectedChain, singleSelectMode]);
+    }, [data, parallelData, selectedValidators, selectedChain, singleSelectMode, hiddenValidators]);
 
     return (
         <div>

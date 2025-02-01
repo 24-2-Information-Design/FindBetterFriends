@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 import jsonData from '../../data/chain_data.json';
 import linkData from '../../data/chain_link_data.json';
@@ -7,18 +7,15 @@ import useChainStore from '../../store/store';
 
 const NetworkPie = () => {
     const svgRef = useRef(null);
-    const { setSelectedChain, selectedValidators, highlightedChains, selectedChain, getChainOpacity } = useChainStore();
-    const [activeClusters, setActiveClusters] = useState(new Set(clusterArr));
+    const {
+        setSelectedChain,
 
-    const toggleCluster = (cluster) => {
-        const newActiveClusters = new Set(activeClusters);
-        if (newActiveClusters.has(cluster)) {
-            newActiveClusters.delete(cluster);
-        } else {
-            newActiveClusters.add(cluster);
-        }
-        setActiveClusters(newActiveClusters);
-    };
+        highlightedChains,
+        selectedChain,
+        getChainOpacity,
+        activeClusters,
+        toggleCluster,
+    } = useChainStore();
 
     const getOpacityForSlice = (clusterIndex) => {
         // 군집이 선택되지 않은 경우 모든 섹션의 opacity는 1

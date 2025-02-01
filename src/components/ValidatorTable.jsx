@@ -1,10 +1,17 @@
 import { useEffect, useState } from 'react';
 import useChainStore from '../store/store';
+import eyeOpenIcon from '../assets/icons/eyeopen.png';
+import eyeCloseIcon from '../assets/icons/eyeclose.png';
 
 const ValidatorTable = () => {
-    const { selectedChain, selectedValidators, baseValidator, setBaseValidator, setSelectedValidators } =
-        useChainStore();
-
+    const {
+        selectedChain,
+        selectedValidators,
+        baseValidator,
+        setBaseValidator,
+        setSelectedValidators,
+        hiddenValidators,
+    } = useChainStore();
     const [validatorData, setValidatorData] = useState([]);
     const [selectedRows, setSelectedRows] = useState([]);
     const [sortConfig, setSortConfig] = useState({
@@ -146,6 +153,9 @@ const ValidatorTable = () => {
             setSelectedRows(validatorData.slice(1).map((data) => data.validator));
         }
     };
+    const handleToggleVisibility = (validator) => {
+        useChainStore.getState().toggleHiddenValidator(validator);
+    };
 
     const columns = [
         { key: 'validator', label: 'Validator Name', width: '25%' },
@@ -155,6 +165,52 @@ const ValidatorTable = () => {
         { key: 'clusterMatchRate', label: 'Cluster Match Rate', width: '15%' },
         { key: 'participationRate', label: 'Participation Rate', width: '15%' },
     ];
+
+    // 테이블 렌더링 시 숨김 상태에 따라 스타일 적용
+    const renderRow = (data, index) => {
+        const isHidden = hiddenValidators.has(data.validator);
+        return (
+            <tr
+                key={data.validator}
+                className={`border-b hover:bg-blue-200 cursor-pointer ${
+                    selectedRows.includes(data.validator) ? 'bg-blue-100' : ''
+                } ${isHidden ? 'opacity-50' : ''}`}
+                onClick={() => setBaseValidator(data.validator)}
+            >
+                <td className="p-2">
+                    <div className="flex items-center gap-2">
+                        <input
+                            type="checkbox"
+                            checked={selectedRows.includes(data.validator)}
+                            onChange={() => handleRowSelect(data.validator)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="form-checkbox"
+                        />
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleToggleVisibility(data.validator);
+                            }}
+                            className="p-1 hover:bg-gray-100 rounded"
+                        >
+                            <img
+                                src={!hiddenValidators.has(data.validator) ? eyeOpenIcon : eyeCloseIcon}
+                                alt="visibility"
+                                className="w-4 h-4"
+                            />
+                        </button>
+                    </div>
+                </td>
+                <td className="p-2">{index}</td>
+                <td className="p-2">{data.validator}</td>
+                <td className="p-2 text-center">{(data.matchRate * 100).toFixed(2)}</td>
+                <td className="p-2 text-center">{data.cluster}</td>
+                <td className="p-2 text-center">{(data.overallMatchRate * 100).toFixed(2)}</td>
+                <td className="p-2 text-center">{(data.clusterMatchRate * 100).toFixed(2)}</td>
+                <td className="p-2 text-center">{(data.participationRate * 100).toFixed(2)}</td>
+            </tr>
+        );
+    };
 
     return (
         <div className="">
@@ -179,15 +235,17 @@ const ValidatorTable = () => {
                         <thead className="sticky top-0 bg-white z-10">
                             <tr className="border-b font-semibold text-xs">
                                 <th className="p-1 border-r whitespace-nowrap">
-                                    <input
-                                        type="checkbox"
-                                        checked={
-                                            validatorData.slice(1).length > 0 &&
-                                            selectedRows.length === validatorData.slice(1).length
-                                        }
-                                        onChange={handleSelectAll}
-                                        className="form-checkbox"
-                                    />
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="checkbox"
+                                            checked={
+                                                validatorData.slice(1).length > 0 &&
+                                                selectedRows.length === validatorData.slice(1).length
+                                            }
+                                            onChange={handleSelectAll}
+                                            className="form-checkbox"
+                                        />
+                                    </div>
                                 </th>
                                 <th className="p-1 border-r whitespace-nowrap">No.</th>
                                 {columns.map((column) => (
@@ -207,52 +265,8 @@ const ValidatorTable = () => {
                             </tr>
                         </thead>
                         <tbody className="text-xs">
-                            {validatorData.length > 0 && (
-                                <tr className="sticky top-8 bg-gray-50 z-10">
-                                    <td className="p-2 border-b"></td>
-                                    <td className="p-2 border-b">1</td>
-                                    <td className="p-2 border-b font-medium">{validatorData[0].validator}</td>
-                                    <td className="p-2 border-b text-center">
-                                        {(validatorData[0].matchRate * 100).toFixed(2)}
-                                    </td>
-                                    <td className="p-2 border-b text-center">{validatorData[0].cluster}</td>
-                                    <td className="p-2 border-b text-center">
-                                        {(validatorData[0].overallMatchRate * 100).toFixed(2)}
-                                    </td>
-                                    <td className="p-2 border-b text-center">
-                                        {(validatorData[0].clusterMatchRate * 100).toFixed(2)}
-                                    </td>
-                                    <td className="p-2 border-b text-center">
-                                        {(validatorData[0].participationRate * 100).toFixed(2)}
-                                    </td>
-                                </tr>
-                            )}
-                            {validatorData.slice(1).map((data, index) => (
-                                <tr
-                                    key={data.validator}
-                                    className={`border-b hover:bg-blue-200 cursor-pointer ${
-                                        selectedRows.includes(data.validator) ? 'bg-blue-100' : ''
-                                    }`}
-                                    onClick={() => setBaseValidator(data.validator)}
-                                >
-                                    <td className="p-2">
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedRows.includes(data.validator)}
-                                            onChange={() => handleRowSelect(data.validator)}
-                                            onClick={(e) => e.stopPropagation()}
-                                            className="form-checkbox"
-                                        />
-                                    </td>
-                                    <td className="p-2">{index + 2}</td>
-                                    <td className="p-2">{data.validator}</td>
-                                    <td className="p-2 text-center">{(data.matchRate * 100).toFixed(2)}</td>
-                                    <td className="p-2 text-center">{data.cluster}</td>
-                                    <td className="p-2 text-center">{(data.overallMatchRate * 100).toFixed(2)}</td>
-                                    <td className="p-2 text-center">{(data.clusterMatchRate * 100).toFixed(2)}</td>
-                                    <td className="p-2 text-center">{(data.participationRate * 100).toFixed(2)}</td>
-                                </tr>
-                            ))}
+                            {validatorData.length > 0 && renderRow(validatorData[0], 1)}
+                            {validatorData.slice(1).map((data, index) => renderRow(data, index + 2))}
                         </tbody>
                     </table>
                 </div>

@@ -13,6 +13,8 @@ const ScatterPlot = ({ data }) => {
         singleSelectMode,
         setSingleSelectMode,
         resetValidatorSelection,
+        activeClusters,
+        hiddenValidators,
     } = useChainStore();
 
     useEffect(() => {
@@ -134,12 +136,12 @@ const ScatterPlot = ({ data }) => {
                         xScale(d.tsne_x) >= x0 &&
                         xScale(d.tsne_x) <= x1 &&
                         yScale(d.tsne_y) >= y0 &&
-                        yScale(d.tsne_y) <= y1
+                        yScale(d.tsne_y) <= y1 &&
+                        !hiddenValidators.has(d.voter)
                 );
 
                 if (selectedNodes.length > 0) {
-                    const newSelected = [...selectedValidators, ...selectedNodes.map((d) => d.voter)];
-                    const uniqueSelected = [...new Set(newSelected)];
+                    const uniqueSelected = [...new Set([...selectedValidators, ...selectedNodes.map((d) => d.voter)])];
                     setSelectedValidators(uniqueSelected);
                     if (!baseValidator && uniqueSelected.length > 0) {
                         setBaseValidator(uniqueSelected[0]);
@@ -159,7 +161,7 @@ const ScatterPlot = ({ data }) => {
 
         const nodes = chart
             .selectAll('circle')
-            .data(sortedData)
+            .data(sortedData.filter((d) => activeClusters.has(d.cluster_label)))
             .enter()
             .append('circle')
             .attr('cx', (d) => xScale(d.tsne_x))
@@ -171,6 +173,7 @@ const ScatterPlot = ({ data }) => {
             .attr('fill', (d) => colorScale(d.cluster_label))
             .attr('opacity', (d) => (selectedValidators.includes(d.voter) ? 1 : 0.6))
             .attr('stroke', (d) => {
+                if (hiddenValidators.has(d.voter)) return 'none';
                 if (d.voter === baseValidator) return '#000';
                 return selectedValidators.includes(d.voter) ? '#666' : 'none';
             })
@@ -198,7 +201,7 @@ const ScatterPlot = ({ data }) => {
         return () => {
             tooltip.remove();
         };
-    }, [data, selectedValidators, baseValidator, singleSelectMode]);
+    }, [data, selectedValidators, baseValidator, singleSelectMode, activeClusters, hiddenValidators]);
 
     const handleReset = () => {
         resetValidatorSelection();
@@ -209,15 +212,19 @@ const ScatterPlot = ({ data }) => {
             <div className="flex items-center gap-4 pl-3">
                 <p className="font-semibold">Validator Votes Similarity</p>
                 <div className="flex items-center gap-4">
-                    <label className="flex items-center space-x-2 text-sm">
-                        <input
-                            type="checkbox"
-                            checked={singleSelectMode}
-                            onChange={(e) => setSingleSelectMode(e.target.checked)}
-                            className="form-checkbox h-4 w-4"
-                        />
-                        <span>Single Selection</span>
-                    </label>
+                    <div
+                        className={`w-12 h-6 flex items-center bg-gray-300 rounded-full p-1 cursor-pointer transition-all ${
+                            singleSelectMode ? 'bg-blue-500' : ''
+                        }`}
+                        onClick={() => setSingleSelectMode(!singleSelectMode)}
+                    >
+                        <div
+                            className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
+                                singleSelectMode ? 'translate-x-6' : ''
+                            }`}
+                        ></div>
+                    </div>
+                    <span className="text-sm font-medium">{singleSelectMode ? 'Single' : 'Multi'}</span>
                     <button onClick={handleReset} className="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded text-sm">
                         Reset
                     </button>

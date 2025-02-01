@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import chainData from '../data/chain_data.json';
 import * as d3 from 'd3';
 import linkDataJson from '../data/chain_link_data.json';
+import { clusterArr } from '../components/color/index';
 
 // 헬퍼 함수들
 const findChainMetadata = (chain) => {
@@ -19,12 +20,14 @@ const findChainMetadata = (chain) => {
 };
 
 const findCommonChains = (validators) => {
+    if (validators.length === 0) return [];
     return chainData
         .filter((chain) => validators.every((validator) => chain.validators?.includes(validator)))
         .map((chain) => chain.chain);
 };
 
 const findValidatorChains = (validators) => {
+    if (validators.length === 0) return [];
     return chainData
         .filter((chain) => validators.some((validator) => chain.validators?.includes(validator)))
         .map((chain) => chain.chain);
@@ -45,6 +48,9 @@ export const useChainStore = create((set, get) => ({
     baseValidator: null,
     validatorChains: [],
     singleSelectMode: true,
+
+    activeClusters: new Set(clusterArr),
+    hiddenValidators: new Set(),
 
     getChainOpacity: (chainId) => {
         const state = get();
@@ -129,6 +135,25 @@ export const useChainStore = create((set, get) => ({
         });
     },
 
+    toggleHiddenValidator: (validator) => {
+        set((state) => {
+            const newHiddenValidators = new Set(state.hiddenValidators);
+            if (newHiddenValidators.has(validator)) {
+                newHiddenValidators.delete(validator); // 이미 숨겨진 검증인이라면 다시 보이게
+            } else {
+                newHiddenValidators.add(validator); // 숨기기
+            }
+            return { hiddenValidators: newHiddenValidators };
+        });
+    },
+    isValidatorHidden: (validator) => {
+        return get().hiddenValidators.has(validator);
+    },
+    getFilteredValidators: () => {
+        const { selectedValidators, hiddenValidators } = get();
+        return selectedValidators.filter((validator) => !hiddenValidators.has(validator));
+    },
+
     setSelectedValidators: (validators) => {
         const commonChains = findCommonChains(validators);
         const validatorChains = findValidatorChains(validators);
@@ -138,6 +163,21 @@ export const useChainStore = create((set, get) => ({
             highlightedChains: commonChains,
             validatorChains,
         });
+    },
+
+    // 모든 군집을 초기 상태에서 활성화
+    toggleCluster: (cluster) => {
+        const newActiveClusters = new Set(get().activeClusters);
+        if (newActiveClusters.has(cluster)) {
+            newActiveClusters.delete(cluster);
+        } else {
+            newActiveClusters.add(cluster);
+        }
+        set({ activeClusters: newActiveClusters });
+    },
+    // 군집 활성화 여부 확인
+    isClusterActive: (cluster) => {
+        return get().activeClusters.has(cluster);
     },
 
     setBaseValidator: (validator) => set({ baseValidator: validator }),

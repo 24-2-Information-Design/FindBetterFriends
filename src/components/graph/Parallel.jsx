@@ -5,16 +5,15 @@ import useChainStore from '../../store/store';
 
 const Parallel = ({ data }) => {
     const svgRef = useRef(null);
-    const { selectedValidators } = useChainStore();
+    const { selectedValidators, hiddenValidators } = useChainStore();
 
-    // 투표 타입 매핑 객체 추가
     const voteTypeMapping = {
         NO_WITH_VETO: 'VETO',
         NO_VOTE: 'NO VOTE',
     };
 
     useEffect(() => {
-        if (!svgRef.current || !data || data.length === 0) return;
+        if (!svgRef.current || !data || data.length === 0 || selectedValidators.length === 0) return;
 
         // SVG 초기화
         const svg = d3.select(svgRef.current);
@@ -26,7 +25,24 @@ const Parallel = ({ data }) => {
 
         svg.attr('width', width).attr('height', height);
 
-        const chainKeys = Object.keys(data[0])
+        // 선택된 검증인들 중 hidden이 아닌 데이터만 필터링
+        const selectedData = data.filter(
+            (validator) => selectedValidators.includes(validator.voter) && !hiddenValidators.has(validator.voter)
+        );
+
+        // hidden이 아닌 선택된 검증인이 없는 경우 처리
+        if (selectedData.length === 0) {
+            svg.append('text')
+                .attr('x', width / 2)
+                .attr('y', height / 2)
+                .attr('text-anchor', 'middle')
+                .attr('dominant-baseline', 'middle')
+                .text('표시할 검증인이 없습니다.');
+            return;
+        }
+
+        // 체인 키 추출
+        const chainKeys = Object.keys(selectedData[0])
             .filter((key) => {
                 if (key === 'voter' || key === 'cluster_label') return false;
                 if (key.startsWith('gravity-bridge_')) return true;
@@ -38,14 +54,31 @@ const Parallel = ({ data }) => {
                 return numA - numB;
             });
 
-        const totalWidth = (chainKeys.length + 2) * spacing;
+        // 불일치하는 투표가 있는 체인만 필터링
+        const divergentChains = chainKeys.filter((chain) => {
+            const votes = new Set(selectedData.map((validator) => validator[chain]));
+            return votes.size > 1; // 서로 다른 투표가 존재하는 경우만
+        });
+
+        // 불일치하는 체인이 없으면 메시지 표시
+        if (divergentChains.length === 0) {
+            svg.append('text')
+                .attr('x', width / 2)
+                .attr('y', height / 2)
+                .attr('text-anchor', 'middle')
+                .attr('dominant-baseline', 'middle')
+                .text('모든 선택된 검증인의 투표가 일치합니다.');
+            return;
+        }
+
+        const totalWidth = (divergentChains.length + 2) * spacing;
         const minScale = width / totalWidth;
         const colorScale = d3.scaleOrdinal(NormalColors);
         const container = svg.append('g').attr('class', 'container');
 
         const xScale = d3
             .scalePoint()
-            .domain(['Cluster', ...chainKeys, 'End'])
+            .domain(['Cluster', ...divergentChains, 'End'])
             .range([0, totalWidth])
             .padding(0.5);
 
@@ -57,13 +90,14 @@ const Parallel = ({ data }) => {
 
         const voteScale = d3
             .scalePoint()
-            .domain(['NO VOTE', 'NO', 'VETO', 'ABSTAIN', 'YES']) // 변경된 순서와 레이블
+            .domain(['NO VOTE', 'NO', 'VETO', 'ABSTAIN', 'YES'])
             .range([height, 0])
             .padding(0.5);
 
+        // 축 그리기
         container
             .selectAll('.axis')
-            .data(['Cluster', ...chainKeys, 'End'])
+            .data(['Cluster', ...divergentChains, 'End'])
             .enter()
             .append('g')
             .attr('class', 'axis')
@@ -82,16 +116,16 @@ const Parallel = ({ data }) => {
                 if (d.chainID === 'Cluster' || d.chainID === 'End') {
                     return clusterScale(d.vote);
                 }
-                // 투표 타입 매핑 적용
                 const displayVote =
                     d.vote === 'NO_WITH_VETO' ? 'VETO' : d.vote === 'NO_VOTE' ? 'NO VOTE' : d.vote || 'NO VOTE';
                 return voteScale(displayVote);
             })
             .defined((d) => d.vote !== undefined);
 
+        // 경로 그리기
         container
             .selectAll('.voter-path')
-            .data(data)
+            .data(selectedData)
             .enter()
             .append('path')
             .attr('class', 'voter-path')
@@ -100,7 +134,7 @@ const Parallel = ({ data }) => {
                 cluster: voter.cluster_label,
                 values: [
                     { chainID: 'Cluster', vote: `Cluster ${voter.cluster_label}` },
-                    ...chainKeys.map((chainID) => ({
+                    ...divergentChains.map((chainID) => ({
                         chainID,
                         vote: voter[chainID] || 'NO_VOTE',
                     })),
@@ -109,18 +143,17 @@ const Parallel = ({ data }) => {
             }))
             .attr('fill', 'none')
             .attr('stroke', (d) => colorScale(d.cluster))
-            .attr('stroke-width', (d) => (selectedValidators.includes(d.id) ? 2.5 : 1.5))
+            .attr('stroke-width', 2.5)
             .attr('d', (d) => line(d.values))
-            .style('opacity', (d) => (selectedValidators.length === 0 || selectedValidators.includes(d.id) ? 0.6 : 0.1))
+            .style('opacity', 0.6)
             .on('mouseover', function (event, d) {
                 d3.select(this).attr('stroke-width', 3).style('opacity', 0.9);
             })
             .on('mouseout', function (event, d) {
-                d3.select(this)
-                    .attr('stroke-width', selectedValidators.includes(d.id) ? 2.5 : 1.5)
-                    .style('opacity', selectedValidators.length === 0 || selectedValidators.includes(d.id) ? 0.6 : 0.1);
+                d3.select(this).attr('stroke-width', 2.5).style('opacity', 0.6);
             });
 
+        // 줌 기능
         const zoom = d3
             .zoom()
             .scaleExtent([minScale, 2])
@@ -134,10 +167,9 @@ const Parallel = ({ data }) => {
             });
 
         svg.call(zoom).call(zoom.transform, d3.zoomIdentity.scale(minScale));
-    }, [data, selectedValidators]);
+    }, [data, selectedValidators, hiddenValidators]);
 
-    // 변경된 투표 타입 레이블
-    const voteTypes = ['YES', 'ABSTAIN', 'VETO', 'NO', 'NO VOTE'];
+    const voteTypes = ['YES', 'ABSTAIN', 'VETO', 'NO', 'NOVOTE'];
 
     return (
         <div className="p-3 flex">

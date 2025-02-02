@@ -156,6 +156,18 @@ const ValidatorTable = () => {
     const handleToggleVisibility = (validator) => {
         useChainStore.getState().toggleHiddenValidator(validator);
     };
+    const toggleAllVisibility = () => {
+        const { toggleHiddenValidator } = useChainStore.getState();
+        const allHidden = validatorData.slice(1).every((data) => hiddenValidators.has(data.validator));
+
+        validatorData.slice(1).forEach((data) => {
+            if (allHidden) {
+                toggleHiddenValidator(data.validator, false); // 모두 보이게
+            } else {
+                toggleHiddenValidator(data.validator, true); // 모두 숨기게
+            }
+        });
+    };
 
     const columns = [
         { key: 'validator', label: 'Validator Name', width: '25%' },
@@ -179,13 +191,6 @@ const ValidatorTable = () => {
             >
                 <td className="p-2">
                     <div className="flex items-center gap-2">
-                        <input
-                            type="checkbox"
-                            checked={selectedRows.includes(data.validator)}
-                            onChange={() => handleRowSelect(data.validator)}
-                            onClick={(e) => e.stopPropagation()}
-                            className="form-checkbox"
-                        />
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
@@ -199,6 +204,13 @@ const ValidatorTable = () => {
                                 className="w-4 h-4"
                             />
                         </button>
+                        <input
+                            type="checkbox"
+                            checked={selectedRows.includes(data.validator)}
+                            onChange={() => handleRowSelect(data.validator)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="form-checkbox"
+                        />
                     </div>
                 </td>
                 <td className="p-2">{index}</td>
@@ -236,6 +248,19 @@ const ValidatorTable = () => {
                             <tr className="border-b font-semibold text-xs">
                                 <th className="p-1 border-r whitespace-nowrap">
                                     <div className="flex items-center gap-2">
+                                        <button onClick={toggleAllVisibility} className="p-1 hover:bg-gray-100 rounded">
+                                            <img
+                                                src={
+                                                    validatorData
+                                                        .slice(1)
+                                                        .every((data) => hiddenValidators.has(data.validator))
+                                                        ? eyeCloseIcon
+                                                        : eyeOpenIcon
+                                                }
+                                                alt="Toggle visibility"
+                                                className="w-4 h-4"
+                                            />
+                                        </button>
                                         <input
                                             type="checkbox"
                                             checked={

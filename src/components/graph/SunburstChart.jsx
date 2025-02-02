@@ -1,11 +1,43 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import useChainStore from '../../store/store';
+import IndividualSunburst from './IndividualSunburst';
 
 const SunburstChart = ({ data, parallelData }) => {
     const svgRef = useRef(null);
     const { selectedValidators, selectedChain, singleSelectMode, hiddenValidators, isValidatorHidden } =
         useChainStore();
+    const [startDate, setStartDate] = useState(null);
+    const [endDate, setEndDate] = useState(null);
+    const [selectedType, setSelectedType] = useState('all');
+    const [filteredData, setFilteredData] = useState(data);
+
+    useEffect(() => {
+        if (!data) return;
+
+        let filtered = [...data];
+
+        // Date range filter
+        if (startDate && endDate) {
+            filtered = filtered.filter((item) => {
+                const proposalDate = new Date(item.submit_time);
+                return proposalDate >= startDate && proposalDate <= endDate;
+            });
+        }
+
+        // Type filter
+        if (selectedType !== 'all') {
+            filtered = filtered.filter((item) => item.type === selectedType);
+        }
+
+        setFilteredData(filtered);
+    }, [data, startDate, endDate, selectedType]);
+
+    const getProposalTypes = () => {
+        if (!data) return [];
+        const types = new Set(data.map((item) => item.type || 'Unknown'));
+        return ['all', ...Array.from(types)];
+    };
 
     const voteColors = {
         YES: '#2ecc71',
@@ -22,6 +54,7 @@ const SunburstChart = ({ data, parallelData }) => {
         ABSTAIN: 'Abstain',
         NO_VOTE: 'No Vote',
     };
+
     const getVoteTypeColor = (voteName) => {
         return voteColors[voteName] || '#95a5a6';
     };
@@ -145,8 +178,8 @@ const SunburstChart = ({ data, parallelData }) => {
     useEffect(() => {
         if (!data || !parallelData) return;
 
-        const width = 300;
-        const height = 290;
+        const width = 200;
+        const height = 200;
         const radius = Math.min(width, height) / 2;
         const legendHeight = 30;
 
@@ -404,13 +437,62 @@ const SunburstChart = ({ data, parallelData }) => {
     }, [data, parallelData, selectedValidators, selectedChain, singleSelectMode, hiddenValidators]);
 
     return (
-        <div>
-            <div className="flex justify-between items-center ">
-                <div className="flex items-center gap-4">
-                    <p className="pl-3 font-semibold">{singleSelectMode ? 'Personal Votes' : 'Votes Match'}</p>
+        <div className="flex flex-col space-y-4">
+            {/* <div className="flex flex-col space-y-4 mb-4">
+                <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-4">
+                        <p className="pl-3 font-semibold">{singleSelectMode ? 'Personal Votes' : 'Votes Match'}</p>
+                    </div>
                 </div>
-            </div>
+
+                <div className="flex items-center gap-4 px-3">
+                    <select
+                        className="px-3 py-2 border rounded-md text-sm bg-white"
+                        value={selectedType}
+                        onChange={(e) => setSelectedType(e.target.value)}
+                    >
+                        {getProposalTypes().map((type) => (
+                            <option key={type} value={type}>
+                                {type === 'all' ? 'All Types' : type.charAt(0).toUpperCase() + type.slice(1)}
+                            </option>
+                        ))}
+                    </select>
+
+                    {selectedType !== 'all' && (
+                        <button
+                            onClick={() => setSelectedType('all')}
+                            className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800"
+                        >
+                            Clear Filter
+                        </button>
+                    )}
+                </div>
+            </div> */}
+
             <svg ref={svgRef} className="ml-24" />
+
+            {!singleSelectMode && selectedValidators.length > 1 && (
+                <div className="mt-8">
+                    <p className="pl-3">Individual Validator Votes</p>
+                    <div className="overflow-x-auto">
+                        <div className="flex gap-4 px-3 pb-4" style={{ minWidth: 'min-content' }}>
+                            {selectedValidators
+                                .filter((validator) => !isValidatorHidden(validator))
+                                .map((validator) => (
+                                    <div key={validator} className="flex-none">
+                                        <IndividualSunburst
+                                            data={filteredData}
+                                            parallelData={parallelData}
+                                            validator={validator}
+                                            width={100}
+                                            height={100}
+                                        />
+                                    </div>
+                                ))}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

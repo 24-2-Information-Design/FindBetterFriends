@@ -4,7 +4,7 @@ import ScatterPlot from '../components/graph/ScatterPlot';
 import useChainStore from '../store/store';
 import SunburstChart from '../components/graph/SunburstChart';
 import ValidatorTable from '../components/ValidatorTable';
-import ClusterResult from '../components/ClusterResult';
+import Parallel from '../components/graph/Parallel';
 
 const Home = () => {
     const { selectedChain, chainData } = useChainStore();
@@ -157,9 +157,13 @@ const Home = () => {
                             <SunburstChart data={sunburstData} parallelData={parallelData} />
                         </div>
                     </div>
+                    <div className="w-full h-[18%]">
+                        <p className="pl-3 font-semibold">Votes Tendency</p>
+                        {parallelData ? <Parallel data={parallelData} /> : selectedChain && <p>Loading... </p>}
+                    </div>
 
                     {/* result view */}
-                    <div className="w-full h-[32%] flex flex-row justify-between mt-4">
+                    <div className="w-full h-[22%] flex flex-row justify-between mt-4">
                         <div className="w-full h-full">
                             <ValidatorTable />
                         </div>
